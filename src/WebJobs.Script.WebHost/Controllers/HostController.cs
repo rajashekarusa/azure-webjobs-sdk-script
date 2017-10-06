@@ -1,10 +1,12 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,7 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.WebApiCompatShim;
 using Microsoft.Azure.WebJobs.Host;
-using Microsoft.Azure.WebJobs.Script.Description;
+using Microsoft.Azure.WebJobs.Script.Config;
 using Microsoft.Azure.WebJobs.Script.WebHost.Authentication;
 using Microsoft.Azure.WebJobs.Script.WebHost.Filters;
 using Microsoft.Azure.WebJobs.Script.WebHost.Models;
@@ -28,74 +30,19 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
     /// Controller responsible for handling all administrative requests, for
     /// example enqueueing function invocations, etc.
     /// </summary>
-    public class AdminController : Controller
+    public class HostController : Controller
     {
         private readonly WebScriptHostManager _scriptHostManager;
         private readonly WebHostSettings _webHostSettings;
         private readonly ILogger _logger;
         private readonly IAuthorizationService _authorizationService;
 
-        public AdminController(WebScriptHostManager scriptHostManager, WebHostSettings webHostSettings, ILoggerFactory loggerFactory, IAuthorizationService authorizationService)
+        public HostController(WebScriptHostManager scriptHostManager, WebHostSettings webHostSettings, ILoggerFactory loggerFactory, IAuthorizationService authorizationService)
         {
             _scriptHostManager = scriptHostManager;
             _webHostSettings = webHostSettings;
-            _logger = loggerFactory.CreateLogger(ScriptConstants.LogCategoryAdminController);
+            _logger = loggerFactory.CreateLogger(ScriptConstants.LogCategoryHostController);
             _authorizationService = authorizationService;
-        }
-
-        [HttpPost]
-        [Route("admin/functions/{name}")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
-        [RequiresRunningHost]
-        public IActionResult Invoke(string name, [FromBody] FunctionInvocation invocation)
-        {
-            if (invocation == null)
-            {
-                return BadRequest();
-            }
-
-            FunctionDescriptor function = _scriptHostManager.Instance.GetFunctionOrNull(name);
-            if (function == null)
-            {
-                return NotFound();
-            }
-
-            ParameterDescriptor inputParameter = function.Parameters.First(p => p.IsTrigger);
-            Dictionary<string, object> arguments = new Dictionary<string, object>()
-            {
-                { inputParameter.Name, invocation.Input }
-            };
-            Task.Run(() => _scriptHostManager.Instance.CallAsync(function.Name, arguments));
-
-            return Accepted();
-        }
-
-        [HttpGet]
-        [Route("admin/functions/{name}/status")]
-        [Authorize(Policy = PolicyNames.AdminAuthLevel)]
-        [RequiresRunningHost]
-        public IActionResult GetFunctionStatus(string name)
-        {
-            FunctionStatus status = new FunctionStatus();
-            Collection<string> functionErrors = null;
-
-            // first see if the function has any errors
-            if (_scriptHostManager.Instance.FunctionErrors.TryGetValue(name, out functionErrors))
-            {
-                status.Errors = functionErrors;
-            }
-            else
-            {
-                // if we don't have any errors registered, make sure the function exists
-                // before returning empty errors
-                FunctionDescriptor function = _scriptHostManager.Instance.Functions.FirstOrDefault(p => p.Name.ToLowerInvariant() == name.ToLowerInvariant());
-                if (function == null)
-                {
-                    return NotFound();
-                }
-            }
-
-            return Ok(status);
         }
 
         [HttpGet]

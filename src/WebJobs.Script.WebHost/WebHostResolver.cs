@@ -114,7 +114,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                         _activeHostManager = new WebScriptHostManager(_activeScriptHostConfig, _secretManagerFactory, _eventManager, _settingsManager, settings,
                             _router, loggerProviderFactory: _loggerProviderFactory, loggerFactory: _loggerFactory);
                         //_activeReceiverManager = new WebHookReceiverManager(_activeHostManager.SecretManager);
-                        InitializeFileSystem();
+                        InitializeFileSystem(settings);
 
                         if (_standbyHostManager != null)
                         {
@@ -150,7 +150,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                             _router, loggerProviderFactory: _loggerProviderFactory, loggerFactory: _loggerFactory);
                         // _standbyReceiverManager = new WebHookReceiverManager(_standbyHostManager.SecretManager);
 
-                        InitializeFileSystem();
+                        InitializeFileSystem(settings);
                         StandbyManager.Initialize(_standbyScriptHostConfig, logger);
 
                         // start a background timer to identify when specialization happens
@@ -183,12 +183,15 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
         internal static ScriptHostConfiguration CreateScriptHostConfiguration(WebHostSettings settings, bool inStandbyMode = false)
         {
-            var scriptHostConfig = new ScriptHostConfiguration
+            InitializeFileSystem(settings);
+
+            var scriptHostConfig = new ScriptHostConfiguration()
             {
                 RootScriptPath = settings.ScriptPath,
                 RootLogPath = settings.LogPath,
                 FileLoggingMode = FileLoggingMode.DebugOnly,
-                IsSelfHost = settings.IsSelfHost
+                IsSelfHost = settings.IsSelfHost,
+                TestDataPath = settings.TestDataPath
             };
 
             if (inStandbyMode)
@@ -242,23 +245,25 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
             _activeHostManager?.RunAsync(CancellationToken.None);
         }
 
-        private static void InitializeFileSystem()
+        private static void InitializeFileSystem(WebHostSettings settings)
         {
             if (ScriptSettingsManager.Instance.IsAzureEnvironment)
             {
+                // When running on Azure, we kick this off on the background
+                // Q: why?
                 Task.Run(() =>
                 {
                     string home = ScriptSettingsManager.Instance.GetSetting(EnvironmentSettingNames.AzureWebsiteHomePath);
                     if (!string.IsNullOrEmpty(home))
                     {
                         // Delete hostingstart.html if any. Azure creates that in all sites by default
-                        string siteRootPath = Path.Combine(home, "site", "wwwroot");
-                        string hostingStart = Path.Combine(siteRootPath, "hostingstart.html");
+                        string hostingStart = Path.Combine(settings.ScriptPath, "hostingstart.html");
                         if (File.Exists(hostingStart))
                         {
                             File.Delete(hostingStart);
                         }
 
+                        Directory.CreateDirectory(settings.TestDataPath);
                         // Create the tools folder if it doesn't exist
                         string toolsPath = Path.Combine(home, "site", "tools");
                         Directory.CreateDirectory(toolsPath);
@@ -278,6 +283,19 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                         }
                     }
                 });
+            }
+            else
+            {
+                // Ensure we have our scripts directory in non-Azure scenarios
+                if (!string.IsNullOrEmpty(settings.ScriptPath))
+                {
+                    Directory.CreateDirectory(settings.ScriptPath);
+                }
+
+                if (!string.IsNullOrEmpty(settings.TestDataPath))
+                {
+                    Directory.CreateDirectory(settings.TestDataPath);
+                }
             }
         }
 
