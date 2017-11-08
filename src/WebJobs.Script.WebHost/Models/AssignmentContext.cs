@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
@@ -8,11 +9,17 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Models
 {
     public class AssignmentContext
     {
-        [JsonProperty("appName")]
-        public string AppName { get; set; }
+        [JsonProperty("siteId")]
+        public int SiteId { get; set; }
 
-        [JsonProperty("appSettings")]
-        public Dictionary<string, string> AppSettings { get; set; }
+        [JsonProperty("siteName")]
+        public string SiteName { get; set; }
+
+        [JsonProperty("environment")]
+        public Dictionary<string, string> Environment { get; set; }
+
+        [JsonProperty("lastModifiedTime")]
+        public DateTime LastModifiedTime { get; set; }
     }
 
     public static class AssignementContextExtensions
@@ -21,8 +28,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Models
         {
             // TODO: move to const file
             const string setting = "WEBSITE_USE_ZIP";
-            return context.AppSettings.ContainsKey(setting)
-                ? context.AppSettings[setting]
+            return context.Environment.ContainsKey(setting)
+                ? context.Environment[setting]
                 : string.Empty;
         }
     }

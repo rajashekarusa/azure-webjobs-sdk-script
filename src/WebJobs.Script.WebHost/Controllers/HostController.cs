@@ -142,6 +142,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
             StatusCode(StatusCodes.Status409Conflict, "Instance already assigned");
 
         [HttpPost("admin/assign")]
+        [HttpPost("admin/instance/assign")]
         public IActionResult Assign([FromBody] AssignmentContext assignmentContext)
         {
             if (string.IsNullOrEmpty(_assignedApp))
@@ -157,31 +158,38 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
 
                         // decrypt, //TODO
                         //var assignmentContext = JsonConvert.DeserializeObject<AssignmentContext>(body);
-                        _assignedApp = assignmentContext.AppName;
+                        _assignedApp = assignmentContext.SiteName;
                     }
 
                     // download zip
                     var zip = assignmentContext.GetZipUrl();
-                    if (string.IsNullOrEmpty(zip))
+                    void applyAppSettings()
                     {
-                        // what to do?
-                        return BadRequest();
+                        // apply app settings
+                        foreach (var pair in assignmentContext.Environment)
+                        {
+                            System.Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+                            ScriptSettingsManager.Instance.SetSetting(pair.Key, pair.Value);
+                        }
                     }
 
-                    var filePath = Path.GetTempFileName();
-                    using (var webClient = new WebClient())
+                    if (!string.IsNullOrEmpty(zip))
                     {
-                        webClient.DownloadFile(new Uri(zip), filePath);
-                    }
+                        var filePath = Path.GetTempFileName();
+                        using (var webClient = new WebClient())
+                        {
+                            webClient.DownloadFile(new Uri(zip), filePath);
+                        }
 
-                    // apply app settings
-                    foreach (var pair in assignmentContext.AppSettings)
+                        applyAppSettings();
+
+                        ZipFile.ExtractToDirectory(filePath, _webHostSettings.ScriptPath, overwriteFiles: true);
+
+                    }
+                    else
                     {
-                        System.Environment.SetEnvironmentVariable(pair.Key, pair.Value);
-                        ScriptSettingsManager.Instance.SetSetting(pair.Key, pair.Value);
+                        applyAppSettings();
                     }
-
-                    ZipFile.ExtractToDirectory(filePath, _webHostSettings.ScriptPath, overwriteFiles: true);
 
                     // Restart runtime.
                     _scriptHostManager.RestartHost();
@@ -203,6 +211,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         }
 
         [HttpGet("admin/info")]
+        [HttpGet("admin/instance/info")]
         public IActionResult GetInstanceInfo()
         {
             return Ok(new Dictionary<string, string>
@@ -210,6 +219,13 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
                 { "FUNCTIONS_EXTENSION_VERSION", ScriptHost.Version },
                 { "WEBSITE_NODE_DEFAULT_VERSION", "8.5.0" }
             });
+        }
+
+        [HttpGet("admin/instance/status")]
+        [HttpGet("admin/status")]
+        public IActionResult GetInstanceStatus()
+        {
+            return Ok();
         }
 
         public override void OnActionExecuting(ActionExecutingContext context)
