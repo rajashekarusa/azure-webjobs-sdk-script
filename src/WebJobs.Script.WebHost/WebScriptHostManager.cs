@@ -233,10 +233,10 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
             // TODO: FACAVAL Instantiation of the ScriptRouteHandler should be cleaned up
             ILoggerFactory loggerFactory = _config.HostConfig.LoggerFactory;
-            WebJobsRouteBuilder routesBuilder = _router.CreateBuilder(new ScriptRouteHandler(loggerFactory, this), httpConfig.RoutePrefix);
+            WebJobsRouteBuilder routesBuilder = _router.CreateBuilder(new ScriptRouteHandler(loggerFactory, this, false), httpConfig.RoutePrefix);
 
             // Proxies do not honor the route prefix defined in host.json
-            WebJobsRouteBuilder proxiesRoutesBuilder = _router.CreateBuilder(new ScriptRouteHandler(loggerFactory, this), routePrefix: null);
+            WebJobsRouteBuilder proxiesRoutesBuilder = _router.CreateBuilder(new ScriptRouteHandler(loggerFactory, this, true), routePrefix: null);
 
             foreach (var function in functions)
             {
@@ -251,7 +251,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
                     string route = httpTrigger.Route;
 
-                    if (string.IsNullOrEmpty(route))
+                    if (string.IsNullOrEmpty(route) && !function.Metadata.IsProxy)
                     {
                         route = function.Name;
                     }

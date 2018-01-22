@@ -1,6 +1,5 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
-
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,74 +15,70 @@ using Microsoft.Azure.WebJobs.Script.WebHost.Features;
 using Microsoft.Azure.WebJobs.Script.WebHost.Security.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using System.IO;
-using System.Text;
+using Microsoft.Azure.AppService.Proxy.Common.Client;
+using System.Linq;
+using System.Reflection;
+using Microsoft.Azure.WebJobs.Script.Binding;
 
-namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
+namespace Microsoft.Azure.WebJobs.Script.WebHost.Proxy
 {
-    public class FunctionInvocationMiddleware
+    public class ProxyFunctionExecutor : IFuncExecutor
     {
-        private readonly RequestDelegate _next;
+        private readonly WebScriptHostManager _scriptHostManager;
+        private readonly IWebJobsRouteHandler _routeHandler;
 
-        public FunctionInvocationMiddleware(RequestDelegate next)
+        internal ProxyFunctionExecutor(WebScriptHostManager scriptHostManager, IWebJobsRouteHandler routeHandler)
         {
-            _next = next;
+            _scriptHostManager = scriptHostManager;
+            _routeHandler = routeHandler;
         }
 
-        public static bool IsHomepageDisabled
+        public async Task<IActionResult> ExecuteFuncAsync(string functionName, Dictionary<string, object> arguments, CancellationToken cancellationToken)
         {
-            get
+            var request = arguments[ScriptConstants.AzureFunctionsHttpRequestKey] as HttpRequest;
+
+            var route = request.HttpContext.GetRouteData();
+
+            RouteContext rc = new RouteContext(request.HttpContext);
+
+            foreach (var router in route.Routers)
             {
-                return string.Equals(Environment.GetEnvironmentVariable(EnvironmentSettingNames.AzureWebJobsDisableHomepage),
-                    bool.TrueString, StringComparison.OrdinalIgnoreCase);
+                var webJobsRouter = router as WebJobsRouter;
+                if (webJobsRouter != null)
+                {
+                    var routeColection = typeof(WebJobsRouter).GetField("_routeCollection", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(webJobsRouter);
+                    var routes = typeof(RouteCollection).GetField("_routes", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(routeColection) as List<IRouter>;
+
+                    if (routes != null)
+                    {
+                        routes.Reverse();
+                    }
+
+                    await webJobsRouter.RouteAsync(rc);
+
+                    if (rc.RouteData != null && rc.RouteData.DataTokens != null)
+                    {
+                        functionName = rc.RouteData.DataTokens["AZUREWEBJOBS_FUNCTIONNAME"].ToString();
+                    }
+                }
             }
-        }
 
-        public async Task Invoke(HttpContext context, WebScriptHostManager manager)
-        {
-            // flow required context through the request pipeline
-            // downstream middleware and filters rely on this
-            context.Items.Add(ScriptConstants.AzureFunctionsHostManagerKey, manager);
+            var context = request.HttpContext;
+            var host = _scriptHostManager.Instance;
 
-            await _next(context);
+            var function = _scriptHostManager.Instance.Functions.FirstOrDefault(f => string.Equals(f.Name, functionName));
 
-            IFunctionExecutionFeature functionExecution = context.Features.Get<IFunctionExecutionFeature>();
-
-            IActionResult result = null;
+            var functionExecution = new FunctionExecutionFeature(host, function);
 
             if (functionExecution != null && !context.Response.HasStarted)
             {
-                result = await GetResultAsync(context, functionExecution);
-            }
-            else if (functionExecution == null
-                && context.Request.Path.Value == "/"
-                && !context.Response.HasStarted)
-            {
-                if (IsHomepageDisabled)
-                {
-                    result = new NoContentResult();
-                }
-                else
-                {
-                    result = new ContentResult()
-                    {
-                        Content = GetHomepage(),
-                        ContentType = "text/html",
-                        StatusCode = 200
-                    };
-                }
+                IActionResult result = await GetResultAsync(context, functionExecution);
+
+                //return ProxyLocalFunctionResultFactory.Create(result);
+                return result;
             }
 
-            if (result != null && !context.Response.HasStarted)
-            {
-                var actionContext = new ActionContext
-                {
-                    HttpContext = context
-                };
-
-                await result.ExecuteResultAsync(actionContext);
-            }
+            return null;
         }
 
         private async Task<IActionResult> GetResultAsync(HttpContext context, IFunctionExecutionFeature functionExecution)
@@ -151,14 +146,5 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
             return authorizeResult.Succeeded;
         }
 
-        private string GetHomepage()
-        {
-            var assembly = typeof(FunctionInvocationMiddleware).Assembly;
-            using (Stream resource = assembly.GetManifestResourceStream(assembly.GetName().Name + ".Home.html"))
-            using (var reader = new StreamReader(resource))
-            {
-                return reader.ReadToEnd();
-            }
-        }
     }
 }

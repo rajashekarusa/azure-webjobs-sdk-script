@@ -18,9 +18,6 @@
     <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.2.3">
       <NoWarn>NU1701</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Azure.AppService.Proxy.Client.Contract" Version="0.3.1.1">
-      <NoWarn>NU1701</NoWarn>
-    </PackageReference>
     <PackageReference Include="Microsoft.Azure.Functions.JavaWorker" Version="1.1.0-beta2-10009" />
     <PackageReference Include="Microsoft.Azure.Functions.NodeJsWorker" Version="1.0.0-beta1-10026" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
@@ -30,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\onegit\AAPT\Antares\Gibraltar\src\Microsoft.Azure.AppService.Proxy.Client\Microsoft.Azure.AppService.Proxy.Client.csproj" />
     <ProjectReference Include="..\..\src\WebJobs.Script.WebHost\WebJobs.Script.WebHost.csproj" />
   </ItemGroup>
 
