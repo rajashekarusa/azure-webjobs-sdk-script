@@ -5,8 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Script.Management.Models;
 using Microsoft.Azure.WebJobs.Script.WebHost.Management;
-using WebJobs.Script.Management.Models;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Extensions
 {

@@ -17,12 +17,10 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
     public class VirtualFileSystemMiddleware : IMiddleware
     {
         private readonly VirtualFileSystemBase _vfs;
-        private readonly VirtualFileSystemBase _zip;
 
-        public VirtualFileSystemMiddleware(VirtualFileSystem vfs, ZipFileSystem zip)
+        public VirtualFileSystemMiddleware(VirtualFileSystem vfs)
         {
             _vfs = vfs;
-            _zip = zip;
         }
 
         /// <summary>
@@ -32,8 +30,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
         /// <returns>IsVirtualFileSystemRequest</returns>
         public static bool IsVirtualFileSystemRequest(HttpContext context)
         {
-            return context.Request.Path.StartsWithSegments("/admin/vfs") ||
-                context.Request.Path.StartsWithSegments("/admin/zip");
+            return context.Request.Path.StartsWithSegments("/admin/vfs");
         }
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate _)
@@ -53,22 +50,21 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
         private async Task InternalInvokeAsync(HttpContext context)
         {
             // choose the right instance to use.
-            var handler = context.Request.Path.StartsWithSegments("/admin/vfs") ? _vfs : _zip;
             HttpResponseMessage response = null;
             try
             {
                 switch (context.Request.Method.ToLowerInvariant())
                 {
                     case "get":
-                        response = await handler.GetItem(context.Request);
+                        response = await _vfs.GetItem(context.Request);
                         break;
 
                     case "put":
-                        response = await handler.PutItem(context.Request);
+                        response = await _vfs.PutItem(context.Request);
                         break;
 
                     case "delete":
-                        response = await handler.DeleteItem(context.Request);
+                        response = await _vfs.DeleteItem(context.Request);
                         break;
 
                     default:
@@ -104,10 +100,10 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Middleware
 
         private async Task<bool> AuthenticateAndAuthorize(HttpContext context)
         {
-            var authorizationEvaluator = context.RequestServices.GetRequiredService<IAuthorizationPolicyProvider>();
+            var authorizationPolicyProvider = context.RequestServices.GetRequiredService<IAuthorizationPolicyProvider>();
             var policyEvaluator = context.RequestServices.GetRequiredService<IPolicyEvaluator>();
 
-            var policy = await authorizationEvaluator.GetPolicyAsync(PolicyNames.AdminAuthLevel);
+            var policy = await authorizationPolicyProvider.GetPolicyAsync(PolicyNames.AdminAuthLevel);
             var authenticateResult = await policyEvaluator.AuthenticateAsync(policy, context);
 
             // For admin, resource is null.

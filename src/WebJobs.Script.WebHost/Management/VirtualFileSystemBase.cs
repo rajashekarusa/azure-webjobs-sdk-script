@@ -13,11 +13,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Script.Config;
+using Microsoft.Azure.WebJobs.Script.Extensions;
 using Microsoft.Azure.WebJobs.Script.WebHost.Extensions;
 using Microsoft.Azure.WebJobs.Script.WebHost.Helpers;
 using Microsoft.Azure.WebJobs.Script.WebHost.Models;
 using Newtonsoft.Json;
-using WebJobs.Script.WebHost.Extensions;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
 {
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 return Task.FromResult(response);
             }
 
-            var info = FileSystemHelpers.DirectoryInfoFromDirectoryName(localFilePath);
+            var info = FileUtility.DirectoryInfoFromDirectoryName(localFilePath);
 
             if (info.Attributes < 0)
             {
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 return Task.FromResult(response);
             }
 
-            var info = FileSystemHelpers.DirectoryInfoFromDirectoryName(localFilePath);
+            var info = FileUtility.DirectoryInfoFromDirectoryName(localFilePath);
             var itemExists = info.Attributes >= 0;
 
             if (itemExists && (info.Attributes & FileAttributes.Directory) != 0)
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 return Task.FromResult(response);
             }
 
-            var dirInfo = FileSystemHelpers.DirectoryInfoFromDirectoryName(localFilePath);
+            var dirInfo = FileUtility.DirectoryInfoFromDirectoryName(localFilePath);
 
             if (dirInfo.Attributes < 0)
             {
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 }
 
                 // We are ready to delete the file
-                var fileInfo = FileSystemHelpers.FileInfoFromFileName(localFilePath);
+                var fileInfo = FileUtility.FileInfoFromFileName(localFilePath);
                 return CreateFileDeleteResponse(request, fileInfo);
             }
         }

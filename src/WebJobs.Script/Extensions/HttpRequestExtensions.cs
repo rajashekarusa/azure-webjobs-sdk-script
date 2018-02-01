@@ -2,9 +2,8 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Script.Config;
 
@@ -39,5 +38,7 @@ namespace Microsoft.Azure.WebJobs.Script.Extensions
             // present.
             return !request.Headers.Keys.Contains(ScriptConstants.AntaresLogIdHeaderName);
         }
+
+        public static Uri GetRequestUri(this HttpRequest request) => new Uri(request.GetDisplayUrl());
     }
 }

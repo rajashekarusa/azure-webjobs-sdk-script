@@ -20,6 +20,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
 {
+    /// <summary>
+    /// Controller responsible for administrative and management operations on functions
+    /// example retriving a list of functions, invoking a function, creating a function, etc
+    /// </summary>
     public class FunctionsController : Controller
     {
         private readonly IWebFunctionsManager _functionsManager;

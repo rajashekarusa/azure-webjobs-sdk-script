@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Extensions
 {
-    public static class TaskExtensions
+    public static class IEnumerableTasksExtensions
     {
         /// <summary>
         /// Returns a Task that completes when all the tasks in <paramref name="collection"/> have completed.

@@ -63,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Extensions
         {
             try
             {
-                if (FileSystemHelpers.FileExists(path))
+                if (FileUtility.FileExists(path))
                 {
                     using (var reader = File.OpenText(path))
                     {
@@ -86,10 +86,10 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Extensions
         {
             if (!File.Exists(testDataPath))
             {
-                await FileSystemHelpers.WriteAllTextToFile(testDataPath, string.Empty);
+                await FileUtility.WriteAsync(testDataPath, string.Empty);
             }
 
-            return await FileSystemHelpers.ReadAllTextFromFile(testDataPath);
+            return await FileUtility.ReadAsync(testDataPath);
         }
 
         private static Uri GetFunctionHref(string functionName, string baseUrl) =>

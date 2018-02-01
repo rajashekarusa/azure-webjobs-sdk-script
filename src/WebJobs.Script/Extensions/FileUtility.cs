@@ -140,5 +140,88 @@ namespace Microsoft.Azure.WebJobs.Script
                 File.Copy(filePath, filePath.Replace(sourcePath, targetPath), true);
             }
         }
+
+        public static bool FileExists(string path) => File.Exists(path);
+
+        public static bool DirectoryExists(string path) => Directory.Exists(path);
+
+        public static DirectoryInfo DirectoryInfoFromDirectoryName(string localSiteRootPath) => new DirectoryInfo(localSiteRootPath);
+
+        public static FileInfo FileInfoFromFileName(string localFilePath) => new FileInfo(localFilePath);
+
+        private static void DeleteDirectoryContentsSafe(DirectoryInfo directoryInfo, bool ignoreErrors)
+        {
+            try
+            {
+                if (directoryInfo.Exists)
+                {
+                    foreach (var fsi in directoryInfo.GetFileSystemInfos())
+                    {
+                        DeleteFileSystemInfo(fsi, ignoreErrors);
+                    }
+                }
+            }
+            catch when (ignoreErrors)
+            {
+            }
+        }
+
+        private static void DeleteFileSystemInfo(FileSystemInfo fileSystemInfo, bool ignoreErrors)
+        {
+            if (!fileSystemInfo.Exists)
+            {
+                return;
+            }
+
+            try
+            {
+                fileSystemInfo.Attributes = FileAttributes.Normal;
+            }
+            catch when (ignoreErrors)
+            {
+            }
+
+            if (fileSystemInfo is DirectoryInfo directoryInfo)
+            {
+                DeleteDirectoryContentsSafe(directoryInfo, ignoreErrors);
+            }
+
+            DoSafeAction(fileSystemInfo.Delete, ignoreErrors);
+        }
+
+        public static void DeleteDirectoryContentsSafe(string path, bool ignoreErrors = true)
+        {
+            try
+            {
+                var directoryInfo = new DirectoryInfo(path);
+                if (directoryInfo.Exists)
+                {
+                    foreach (var fsi in directoryInfo.GetFileSystemInfos())
+                    {
+                        DeleteFileSystemInfo(fsi, ignoreErrors);
+                    }
+                }
+            }
+            catch when (ignoreErrors)
+            {
+            }
+        }
+
+        public static void DeleteFileSafe(string path)
+        {
+            var info = FileInfoFromFileName(path);
+            DeleteFileSystemInfo(info, ignoreErrors: true);
+        }
+
+        private static void DoSafeAction(Action action, bool ignoreErrors)
+        {
+            try
+            {
+                action();
+            }
+            catch when (ignoreErrors)
+            {
+            }
+        }
     }
 }

@@ -27,8 +27,8 @@ using Newtonsoft.Json;
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
 {
     /// <summary>
-    /// Controller responsible for handling all administrative requests, for
-    /// example enqueueing function invocations, etc.
+    /// Controller responsible for handling all administrative requests for host operations
+    /// example host status, ping, log, etc
     /// </summary>
     public class HostController : Controller
     {

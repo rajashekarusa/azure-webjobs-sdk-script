@@ -57,7 +57,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
             var functionDir = Path.Combine(_config.RootScriptPath, name);
 
             // Make sure the function folder exists
-            if (!FileSystemHelpers.DirectoryExists(functionDir))
+            if (!FileUtility.DirectoryExists(functionDir))
             {
                 // Cleanup any leftover artifacts from a function with the same name before.
                 DeleteFunctionArtifacts(functionMetadata);
@@ -78,11 +78,11 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
                 }
 
                 // Delete all existing files in the directory. This will also delete current function.json, but it gets recreated below
-                FileSystemHelpers.DeleteDirectoryContentsSafe(functionDir);
+                FileUtility.DeleteDirectoryContentsSafe(functionDir);
 
                 await functionMetadata
                     .Files
-                    .Select(e => FileSystemHelpers.WriteAllTextToFile(Path.Combine(functionDir, e.Key), e.Value))
+                    .Select(e => FileUtility.WriteAsync(Path.Combine(functionDir, e.Key), e.Value))
                     .WhenAll();
             }
 
@@ -94,21 +94,21 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
 
             // Get the current config, if any
             string currentConfig = null;
-            if (FileSystemHelpers.FileExists(configPath))
+            if (FileUtility.FileExists(configPath))
             {
-                currentConfig = await FileSystemHelpers.ReadAllTextFromFile(configPath);
+                currentConfig = await FileUtility.ReadAsync(configPath);
             }
 
             // Save the file and set changed flag is it has changed. This helps optimize the syncTriggers call
             if (newConfig != currentConfig)
             {
-                await FileSystemHelpers.WriteAllTextToFile(configPath, newConfig);
+                await FileUtility.WriteAsync(configPath, newConfig);
                 configChanged = true;
             }
 
             if (functionMetadata.TestData != null)
             {
-                await FileSystemHelpers.WriteAllTextToFile(dataFilePath, functionMetadata.TestData);
+                await FileUtility.WriteAsync(dataFilePath, functionMetadata.TestData);
             }
 
             (var success, var functionMetadataResult) = await TryGetFunction(name, request); // test_data took from incoming request, it will not exceed the limit
@@ -143,7 +143,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
         {
             try
             {
-                FileSystemHelpers.DeleteDirectoryContentsSafe(function.GetFunctionPath(_config));
+                FileUtility.DeleteDirectoryContentsSafe(function.GetFunctionPath(_config));
                 DeleteFunctionArtifacts(function);
                 return (true, string.Empty);
             }
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
         {
             // TODO: clear secrets
             // TODO: clear logs
-            // FileSystemHelpers.DeleteFileSafe(function.GetFunctionTestDataFilePath(_config));
+            FileUtility.DeleteFileSafe(function.GetFunctionTestDataFilePath(_config));
         }
     }
 }

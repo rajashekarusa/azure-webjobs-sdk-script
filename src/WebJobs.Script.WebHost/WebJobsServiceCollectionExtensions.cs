@@ -101,8 +101,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
             builder.Register<ISecretManager>(c => c.Resolve<WebHostResolver>().GetSecretManager()).ExternallyOwned();
             builder.RegisterType<WebFunctionsManager>().As<IWebFunctionsManager>().SingleInstance();
             builder.RegisterType<VirtualFileSystem>();
-            builder.RegisterType<ZipFileSystem>();
-            builder.RegisterType<VirtualFileSystemMiddleware>();
 
             // Populate the container builder with registered services.
             // Doing this here will cause any services registered in the service collection to

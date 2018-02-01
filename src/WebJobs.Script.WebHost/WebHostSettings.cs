@@ -22,6 +22,11 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
         public string SecretsPath { get; set; }
 
+        /// <summary>
+        /// Gets or sets the path for storing test data
+        /// This is used for function management operations where the client (portal)
+        /// saves the last invocation test data for a given function
+        /// </summary>
         public string TestDataPath { get; set; }
 
         /// <summary>

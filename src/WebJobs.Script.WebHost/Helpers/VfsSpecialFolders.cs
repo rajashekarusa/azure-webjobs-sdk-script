@@ -9,9 +9,10 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Azure.WebJobs.Script.Extensions;
+using Microsoft.Azure.WebJobs.Script.WebHost.Extensions;
 using Microsoft.Azure.WebJobs.Script.WebHost.Management;
 using Microsoft.Azure.WebJobs.Script.WebHost.Models;
-using WebJobs.Script.WebHost.Extensions;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.Helpers
 {
@@ -62,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Helpers
             {
                 if (!string.IsNullOrEmpty(SystemDrivePath))
                 {
-                    var dir = FileSystemHelpers.DirectoryInfoFromDirectoryName(SystemDrivePath + Path.DirectorySeparatorChar);
+                    var dir = FileUtility.DirectoryInfoFromDirectoryName(SystemDrivePath + Path.DirectorySeparatorChar);
                     yield return new VfsStatEntry
                     {
                         Name = SystemDriveFolder,
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Helpers
 
                 if (!string.IsNullOrEmpty(LocalSiteRootPath))
                 {
-                    var dir = FileSystemHelpers.DirectoryInfoFromDirectoryName(LocalSiteRootPath);
+                    var dir = FileUtility.DirectoryInfoFromDirectoryName(LocalSiteRootPath);
                     yield return new VfsStatEntry
                     {
                         Name = LocalSiteRootFolder,
